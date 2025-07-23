@@ -3,13 +3,13 @@ import io
 import base64
 from PIL import Image
 from openai import OpenAI
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+from flask import Flask, request, render_template_string, jsonify
 
 app = Flask(__name__)
 app.secret_key = "test_secret_key"
 
-# Set OpenAI API key
-openai.api_key = os.environ.get('OPENAI_API_KEY')
+# Initialize OpenAI client
+client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 # HTML template for testing
 HTML_TEMPLATE = '''
@@ -162,7 +162,7 @@ def transform():
         )
         
         # Get the generated image URL
-        image_url = response['data'][0]['url']
+        image_url = response.data[0].url
         
         # Download the image and convert to base64
         import requests
