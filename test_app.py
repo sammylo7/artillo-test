@@ -4,6 +4,7 @@ import base64
 from PIL import Image
 from openai import OpenAI
 from flask import Flask, request, render_template_string, jsonify
+import requests
 
 app = Flask(__name__)
 app.secret_key = "test_secret_key"
@@ -89,7 +90,10 @@ HTML_TEMPLATE = '''
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
                 generateBtn.disabled = false;
                 if (data.success) {
@@ -102,6 +106,7 @@ HTML_TEMPLATE = '''
             .catch(error => {
                 generateBtn.disabled = false;
                 status.innerHTML = '<p style="color: red;">❌ Network error: ' + error.message + '</p>';
+                console.error('Full error:', error);
             });
         }
     </script>
@@ -116,19 +121,24 @@ def index():
 @app.route('/transform', methods=['POST'])
 def transform():
     try:
+        print("Starting transformation...")
+        
         # Get uploaded image
         if 'image' not in request.files:
             return jsonify({'success': False, 'error': 'No image uploaded'})
         
         image_file = request.files['image']
         style = request.form.get('style', 'oil_painting')
+        print(f"Processing style: {style}")
         
         # Convert to PIL Image
         image = Image.open(image_file.stream)
+        print(f"Original image size: {image.size}")
         
         # Resize and convert to RGBA
         image = image.convert('RGBA')
         image = image.resize((1024, 1024))
+        print("Image resized to 1024x1024")
         
         # Create mask (full white mask for complete transformation)
         mask = Image.new('L', (1024, 1024), 255)
@@ -144,6 +154,8 @@ def transform():
         mask_buffer.seek(0)
         mask_buffer.name = 'mask.png'
         
+        print("Image and mask buffers created")
+        
         # Style prompts
         style_prompts = {
             'oil_painting': 'Convert this photograph into an oil painting with thick brushstrokes, rich colors, and painterly texture',
@@ -152,24 +164,36 @@ def transform():
         }
         
         prompt = style_prompts.get(style, style_prompts['oil_painting'])
+        print(f"Using prompt: {prompt}")
         
-        # Call DALL-E 2 Edit API
-        response = client.images.edit(
-            image=img_buffer,
-            mask=mask_buffer,
-            prompt=prompt,
-            n=1,
-            size="1024x1024",
-            model="dall-e-2"
-        )
+        # Call DALL-E 2 Edit API with error handling
+        try:
+            print("Calling DALL-E 2 Edit API...")
+            response = client.images.edit(
+                image=img_buffer,
+                mask=mask_buffer,
+                prompt=prompt,
+                n=1,
+                size="1024x1024",
+                model="dall-e-2"
+            )
+            print("API call successful!")
+        except Exception as api_error:
+            print(f"API Error: {str(api_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'OpenAI API Error: {str(api_error)}'
+            })
         
         # Get the generated image URL
         image_url = response.data[0].url
+        print(f"Generated image URL: {image_url}")
         
         # Download the image and convert to base64
-        import requests
+        print("Downloading generated image...")
         img_response = requests.get(image_url)
         img_base64 = base64.b64encode(img_response.content).decode('utf-8')
+        print("Image downloaded and encoded to base64")
         
         return jsonify({
             'success': True,
@@ -178,6 +202,7 @@ def transform():
         })
         
     except Exception as e:
+        print(f"General error: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
