@@ -29,8 +29,8 @@ HTML_TEMPLATE = '''
     </style>
 </head>
 <body>
-    <h1>Photo-to-Painting Test</h1>
-    <p>This test will verify if DALL-E 2 Edit API works on external hosting infrastructure.</p>
+    <h1>Photo-to-Painting Test - FIXED VERSION</h1>
+    <p>Testing with transparent mask (alpha=0) for areas to edit.</p>
     
     <div class="upload-area">
         <input type="file" id="photoInput" accept="image/*" onchange="previewImage()">
@@ -79,7 +79,7 @@ HTML_TEMPLATE = '''
             if (!input.files || !input.files[0]) return;
             
             generateBtn.disabled = true;
-            status.innerHTML = '<p>Transforming photo to painting... This may take 20-30 seconds.</p>';
+            status.innerHTML = '<p>Transforming photo to painting with proper transparent mask...</p>';
             result.innerHTML = '';
             
             const formData = new FormData();
@@ -121,7 +121,7 @@ def index():
 @app.route('/transform', methods=['POST'])
 def transform():
     try:
-        print("Starting transformation...")
+        print("Starting transformation with FIXED transparent mask...")
         
         # Get uploaded image
         if 'image' not in request.files:
@@ -140,8 +140,10 @@ def transform():
         image = image.resize((1024, 1024))
         print("Image resized to 1024x1024")
         
-        # Create mask (full white mask for complete transformation)
-        mask = Image.new('L', (1024, 1024), 255)
+        # Create mask (transparent mask for complete transformation)
+        # For DALL-E 2 Edit: transparent pixels (alpha=0) = areas to edit
+        mask = Image.new('RGBA', (1024, 1024), (0, 0, 0, 0))
+        print("Created transparent mask for full transformation")
         
         # Convert images to bytes with proper naming
         img_buffer = io.BytesIO()
@@ -154,7 +156,7 @@ def transform():
         mask_buffer.seek(0)
         mask_buffer.name = 'mask.png'
         
-        print("Image and mask buffers created")
+        print("Image and mask buffers created with transparent mask")
         
         # Style prompts
         style_prompts = {
@@ -168,7 +170,7 @@ def transform():
         
         # Call DALL-E 2 Edit API with error handling
         try:
-            print("Calling DALL-E 2 Edit API...")
+            print("Calling DALL-E 2 Edit API with transparent mask...")
             response = client.images.edit(
                 image=img_buffer,
                 mask=mask_buffer,
@@ -198,7 +200,7 @@ def transform():
         return jsonify({
             'success': True,
             'image': img_base64,
-            'message': 'Photo successfully transformed to painting!'
+            'message': 'Photo successfully transformed to painting with transparent mask!'
         })
         
     except Exception as e:
