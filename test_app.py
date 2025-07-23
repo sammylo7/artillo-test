@@ -133,14 +133,16 @@ def transform():
         # Create mask (full white mask for complete transformation)
         mask = Image.new('L', (1024, 1024), 255)
         
-        # Convert images to bytes
+        # Convert images to bytes with proper naming
         img_buffer = io.BytesIO()
         image.save(img_buffer, format='PNG')
         img_buffer.seek(0)
+        img_buffer.name = 'image.png'
         
         mask_buffer = io.BytesIO()
         mask.save(mask_buffer, format='PNG')
         mask_buffer.seek(0)
+        mask_buffer.name = 'mask.png'
         
         # Style prompts
         style_prompts = {
