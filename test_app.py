@@ -2,8 +2,8 @@ import os
 import io
 import base64
 from PIL import Image
-import openai
-from flask import Flask, request, render_template_string, jsonify
+from openai import OpenAI
+client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 app = Flask(__name__)
 app.secret_key = "test_secret_key"
@@ -152,7 +152,7 @@ def transform():
         prompt = style_prompts.get(style, style_prompts['oil_painting'])
         
         # Call DALL-E 2 Edit API
-        response = openai.Image.create_edit(
+        response = client.images.edit(
             image=img_buffer,
             mask=mask_buffer,
             prompt=prompt,
