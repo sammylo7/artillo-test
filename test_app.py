@@ -181,9 +181,12 @@ def transform():
         )
         
         # 6) Fetch the result and return as base64
-        result_url = response.data[0].url
-        img_data = requests.get(result_url).content
-        img_b64 = base64.b64encode(img_data).decode('utf-8')
+        if response.data and len(response.data) > 0:
+            result_url = response.data[0].url
+            img_data = requests.get(result_url).content
+            img_b64 = base64.b64encode(img_data).decode('utf-8')
+        else:
+            return jsonify({'success': False, 'error': 'No image data returned from API'})
         
         return jsonify({
             'success': True,
